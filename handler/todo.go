@@ -3,7 +3,6 @@ package handler
 import (
 	"context"
 	"encoding/json"
-	"log"
 	"net/http"
 
 	"github.com/TechBowl-japan/go-stations/model"
@@ -30,16 +29,15 @@ func (h *TODOHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		var req model.CreateTODORequest
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
-			log.Println("failed to decode request:", err)
 			return
 		}
 		resp, err := h.Create(ctx, &req)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
-			log.Println("failed to Create", err)
 			return
 		}
 		json.NewEncoder(w).Encode(resp)
+
 	case http.MethodGet:
 		var req model.ReadTODORequest
 		resp, err := h.Read(ctx, &req)
@@ -48,7 +46,26 @@ func (h *TODOHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		json.NewEncoder(w).Encode(resp)
-	// 他のメソッドも同様に追加
+
+	case http.MethodPut:
+		var req model.UpdateTODORequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		// リクエストのidが0または、subjectが空文字の場合はBadRequestを返す
+		if req.ID == 0 || req.Subject == "" {
+			http.Error(w, "bad request", http.StatusBadRequest)
+			return
+		}
+		resp, err := h.Update(ctx, &req)
+		// ErrNotFound errorの場合は404を返す
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusNotFound)
+			return
+		}
+		json.NewEncoder(w).Encode(resp)
+
 	default:
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 	}
@@ -76,8 +93,15 @@ func (h *TODOHandler) Read(ctx context.Context, req *model.ReadTODORequest) (*mo
 
 // Update handles the endpoint that updates the TODO.
 func (h *TODOHandler) Update(ctx context.Context, req *model.UpdateTODORequest) (*model.UpdateTODOResponse, error) {
-	_, _ = h.svc.UpdateTODO(ctx, 0, "", "")
-	return &model.UpdateTODOResponse{}, nil
+	id, subject, description := req.ID, req.Subject, req.Description
+	todo, err := h.svc.UpdateTODO(ctx, id, subject, description)
+	if err != nil {
+		return nil, err
+	}
+	var resp model.UpdateTODOResponse
+	resp.TODO = *todo
+
+	return &resp, nil
 }
 
 // Delete handles the endpoint that deletes the TODOs.
