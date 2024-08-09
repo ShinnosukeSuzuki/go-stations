@@ -27,8 +27,8 @@ func (s *TODOService) CreateTODO(ctx context.Context, subject, description strin
 		confirm = `SELECT subject, description, created_at, updated_at FROM todos WHERE id = ?`
 	)
 
-	// if subject or description is empty, return error
-	if subject == "" || description == "" {
+	// subject is empty, return error
+	if subject == "" {
 		return nil, sqlite3.Error{Code: sqlite3.ErrConstraint}
 	}
 
@@ -49,6 +49,9 @@ func (s *TODOService) CreateTODO(ctx context.Context, subject, description strin
 	if err != nil {
 		return nil, err
 	}
+
+	// todoのidを設定
+	todo.ID = int(id)
 
 	return &todo, nil
 }
