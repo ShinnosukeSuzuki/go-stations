@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
+	"strconv"
 
 	"github.com/TechBowl-japan/go-stations/model"
 	"github.com/TechBowl-japan/go-stations/service"
@@ -40,6 +41,33 @@ func (h *TODOHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	case http.MethodGet:
 		var req model.ReadTODORequest
+		// クエリパラメータの取得
+		query := r.URL.Query()
+		// rからクエリパラメータのprevIDとsizeを取得してreqにセット
+		// クエリパラメータがない場合は、reqのPrevIDとSizeに0をセット
+		if query.Get("prev_id") == "" {
+			req.PrevID = 0
+		} else {
+			prevID, err := strconv.Atoi(query.Get("prev_id"))
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusBadRequest)
+				return
+			}
+			req.PrevID = int64(prevID)
+		}
+
+		if query.Get("size") == "" {
+			// クエリパラメータにsizeがない場合は、defaultで5をセット
+			req.Size = 5
+		} else {
+			size, err := strconv.Atoi(query.Get("size"))
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusBadRequest)
+				return
+			}
+			req.Size = int64(size)
+		}
+
 		resp, err := h.Read(ctx, &req)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -87,8 +115,20 @@ func (h *TODOHandler) Create(ctx context.Context, req *model.CreateTODORequest) 
 
 // Read handles the endpoint that reads the TODOs.
 func (h *TODOHandler) Read(ctx context.Context, req *model.ReadTODORequest) (*model.ReadTODOResponse, error) {
-	_, _ = h.svc.ReadTODO(ctx, 0, 0)
-	return &model.ReadTODOResponse{}, nil
+	todos, err := h.svc.ReadTODO(ctx, req.PrevID, req.Size)
+	if err != nil {
+		return nil, err
+	}
+
+	// []*model.TODO を []model.TODO に変換
+	todoList := make([]model.TODO, len(todos))
+	for i, todo := range todos {
+		todoList[i] = *todo
+	}
+
+	var resp model.ReadTODOResponse
+	resp.TODOs = todoList
+	return &resp, nil
 }
 
 // Update handles the endpoint that updates the TODO.
