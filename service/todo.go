@@ -3,6 +3,8 @@ package service
 import (
 	"context"
 	"database/sql"
+	"fmt"
+	"strings"
 
 	"github.com/TechBowl-japan/go-stations/model"
 	"github.com/mattn/go-sqlite3"
@@ -144,6 +146,34 @@ func (s *TODOService) UpdateTODO(ctx context.Context, id int64, subject, descrip
 // DeleteTODO deletes TODOs on DB by ids.
 func (s *TODOService) DeleteTODO(ctx context.Context, ids []int64) error {
 	const deleteFmt = `DELETE FROM todos WHERE id IN (?%s)`
+
+	// idsが空の場合はnilを返す
+	if len(ids) == 0 {
+		return nil
+	}
+
+	// クエリのプレースホルダーを生成
+	placeholders := strings.Repeat(",?", len(ids)-1)
+
+	// クエリを生成
+	query := fmt.Sprintf(deleteFmt, placeholders)
+
+	// クエリの引数を生成
+	args := make([]interface{}, len(ids))
+	for i, id := range ids {
+		args[i] = id
+	}
+
+	// execute delete query
+	rows, err := s.db.ExecContext(ctx, query, args...)
+	if err != nil {
+		return err
+	}
+
+	// rows affected is 0, return ErrNotFound
+	if affected, _ := rows.RowsAffected(); affected == 0 {
+		return &model.ErrNotFound{}
+	}
 
 	return nil
 }
