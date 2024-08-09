@@ -51,7 +51,7 @@ func (s *TODOService) CreateTODO(ctx context.Context, subject, description strin
 	}
 
 	// todoのidを設定
-	todo.ID = int(id)
+	todo.ID = id
 
 	return &todo, nil
 }
@@ -73,7 +73,39 @@ func (s *TODOService) UpdateTODO(ctx context.Context, id int64, subject, descrip
 		confirm = `SELECT subject, description, created_at, updated_at FROM todos WHERE id = ?`
 	)
 
-	return nil, nil
+	// id is empty, return ErrNotFound
+	if id == 0 {
+		return nil, &model.ErrNotFound{}
+	}
+
+	// subject empty, return error
+	if subject == "" {
+		return nil, sqlite3.Error{Code: sqlite3.ErrConstraint}
+	}
+
+	// execute update query
+	row, err := s.db.ExecContext(ctx, update, subject, description, id)
+	if err != nil {
+		return nil, err
+	}
+
+	// row affected is 0, return ErrNotFound
+	if affected, _ := row.RowsAffected(); affected == 0 {
+		return nil, &model.ErrNotFound{}
+	}
+
+	// execute confirm query
+	var todo model.TODO
+	err = s.db.QueryRowContext(ctx, confirm, id).Scan(&todo.Subject, &todo.Description, &todo.CreatedAt, &todo.UpdatedAt)
+
+	if err != nil {
+		return nil, err
+	}
+
+	// todoのidを設定
+	todo.ID = id
+
+	return &todo, nil
 }
 
 // DeleteTODO deletes TODOs on DB by ids.
