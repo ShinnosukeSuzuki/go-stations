@@ -13,6 +13,8 @@ func NewRouter(todoDB *sql.DB) *http.ServeMux {
 	// register routes
 	mux := http.NewServeMux()
 	// /healthzの時にHealthzHandlerを呼び出す
+	mux.Handle("/healthz", middleware.BasicAuthMiddleware(handler.NewHealthzHandler()))
+
 	// do-panicの時にmiddlewareのRecoveryを通してDoPanicHandlerを呼び出す
 	mux.Handle("/do-panic", middleware.Recovery(handler.NewDoPanicHandler()))
 
