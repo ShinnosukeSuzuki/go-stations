@@ -1,6 +1,9 @@
 package middleware
 
-import "net/http"
+import (
+	"log"
+	"net/http"
+)
 
 func Recovery(h http.Handler) http.Handler {
 	fn := func(w http.ResponseWriter, r *http.Request) {
@@ -8,6 +11,8 @@ func Recovery(h http.Handler) http.Handler {
 		// recoverはdeferの中でのみ使用可能
 		defer func() {
 			if err := recover(); err != nil {
+				// panic理由とURLをログに出力
+				log.Printf("panic: %v, URL: %s", err, r.URL.String())
 				http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 			}
 		}()
