@@ -10,6 +10,13 @@ import (
 	"github.com/TechBowl-japan/go-stations/handler/router"
 )
 
+// 環境変数から取得した値を使ってサーバーを起動する
+var (
+	// Basic Auth用のユーザー名とパスワードを環境変数から取得
+	username = os.Getenv("BASIC_AUTH_USER_ID")
+	password = os.Getenv("BASIC_AUTH_PASSWORD")
+)
+
 func main() {
 	err := realMain()
 	if err != nil {
@@ -48,8 +55,8 @@ func realMain() error {
 	}
 	defer todoDB.Close()
 
-	// NOTE: 新しいエンドポイントの登録はrouter.NewRouterの内部で行うようにする
-	mux := router.NewRouter(todoDB)
+	// NOTE: 新しいエンドポイントの登録はrouter.NewRouterの内部で行うようにする.
+	mux := router.NewRouter(todoDB, username, password)
 
 	// TODO: サーバーをlistenする
 	http.ListenAndServe(port, mux)

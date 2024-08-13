@@ -2,15 +2,10 @@ package middleware
 
 import (
 	"net/http"
-	"os"
 )
 
-func BasicAuthMiddleware(h http.Handler) http.Handler {
+func BasicAuthMiddleware(h http.Handler, username, password string) http.Handler {
 	fn := func(w http.ResponseWriter, r *http.Request) {
-		// usernameとpasswordは環境変数から取得
-		username := os.Getenv("BASIC_AUTH_USER_ID")
-		password := os.Getenv("BASIC_AUTH_PASSWORD")
-
 		// Basic認証のユーザー名とパスワードを取得
 		user, pass, ok := r.BasicAuth()
 
