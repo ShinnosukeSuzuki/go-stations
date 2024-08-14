@@ -20,7 +20,7 @@ func NewRouter(todoDB *sql.DB, username, password string) *http.ServeMux {
 
 	//todoDBを使ってserviceを作成
 	todoService := service.NewTODOService(todoDB)
-	mux.Handle("/todos", middleware.BasicAuthMiddleware(handler.NewTODOHandler(todoService), username, password))
+	mux.Handle("/todos", middleware.BasicAuthMiddleware(middleware.AccessLoggingMiddleware(handler.NewTODOHandler(todoService)), username, password))
 
 	return mux
 }
