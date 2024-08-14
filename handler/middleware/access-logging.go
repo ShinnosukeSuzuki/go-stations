@@ -39,6 +39,6 @@ func AccessLoggingMiddleware(h http.Handler) http.Handler {
 			OS:        osName,
 		}
 
-		fmt.Println(al)
+		fmt.Printf("%+v\n", al)
 	})
 }
