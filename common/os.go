@@ -13,11 +13,11 @@ func GetOsName(req *http.Request) string {
 	// リクエストヘッダーからUser-Agentを取得
 	userAgent := req.Header.Get("User-Agent")
 	// useragentを使ってOSを取得
-	OsName := useragent.Parse(userAgent).OS
-	return OsName
+	osName := useragent.Parse(userAgent).OS
+	return osName
 }
 
 // 取得したOsNameをcontextに格納する
-func SetOsName(ctx context.Context, OsName string) context.Context {
-	return context.WithValue(ctx, OsNameKeyType{}, OsName)
+func SetOsName(ctx context.Context, osName string) context.Context {
+	return context.WithValue(ctx, OsNameKeyType{}, osName)
 }

@@ -20,9 +20,9 @@ type AccessLogging struct {
 func AccessLoggingMiddleware(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// OsNameを取得
-		OsName := common.GetOsName(r)
+		osName := common.GetOsName(r)
 		// contextに格納
-		ctx := common.SetOsName(r.Context(), OsName)
+		ctx := common.SetOsName(r.Context(), osName)
 		r = r.WithContext(ctx)
 
 		// handlerのアクセス時刻を取得
@@ -36,7 +36,7 @@ func AccessLoggingMiddleware(h http.Handler) http.Handler {
 			Timestamp: start,
 			Latency:   duration.Milliseconds(),
 			Path:      r.URL.Path,
-			OS:        OsName,
+			OS:        osName,
 		}
 
 		fmt.Println(al)
