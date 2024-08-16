@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"sync"
 	"syscall"
 	"time"
 
@@ -71,24 +72,31 @@ func realMain() error {
 		Handler: mux,
 	}
 
+	var wg sync.WaitGroup
+
+	wg.Add(1)
 	// サーバーをゴルーチンで起動
 	go func() {
-		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Fatalf("ListenAndServe(): %v", err)
+		// シグナルを受け取るまで待機
+		<-ctx.Done()
+
+		// 5秒のタイムアウト付きコンテキストを作成
+		ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+		defer cancel()
+
+		// サーバーをシャットダウン(新しい接続の受け付けを停止し、contextがキャンセルされたら終了する)
+		if err := srv.Shutdown(ctx); err != nil {
+			log.Fatalf("Shutdown(): %v", err)
 		}
+		defer wg.Done()
 	}()
 
-	// シグナルを受け取るまで待機
-	<-ctx.Done()
-
-	// 5秒のタイムアウト付きコンテキストを作成
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-
-	// サーバーをシャットダウン
-	if err := srv.Shutdown(ctx); err != nil {
-		return err
+	// 正常にシャットダウンした場合はhttp.ErrServerClosedが返る
+	if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		log.Fatalf("ListenAndServe(): %v", err)
 	}
+
+	wg.Wait()
 
 	return nil
 }

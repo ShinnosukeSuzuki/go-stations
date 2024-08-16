@@ -3,6 +3,7 @@ package handler
 import (
 	"encoding/json"
 	"net/http"
+	"time"
 
 	"github.com/TechBowl-japan/go-stations/model"
 )
@@ -17,7 +18,8 @@ func NewHealthzHandler() *HealthzHandler {
 
 // ServeHTTP implements http.Handler interface.
 func (h *HealthzHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-
+	// 5秒後にレスポンスを返す
+	time.Sleep(10 * time.Second)
 	response := &model.HealthzResponse{
 		Message: "OK",
 	}
