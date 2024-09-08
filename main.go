@@ -6,12 +6,12 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
-	"sync"
 	"syscall"
 	"time"
 
 	"github.com/TechBowl-japan/go-stations/db"
 	"github.com/TechBowl-japan/go-stations/handler/router"
+	"golang.org/x/sync/errgroup"
 )
 
 // 環境変数から取得した値を使ってサーバーを起動する
@@ -72,11 +72,11 @@ func realMain() error {
 		Handler: mux,
 	}
 
-	var wg sync.WaitGroup
+	// errgroupを作成
+	g, ctx := errgroup.WithContext(ctx)
 
-	wg.Add(1)
-	// サーバーをゴルーチンで起動
-	go func() {
+	// シグナルを受け取り、サーバーをシャットダウンするゴルーチンをerrgroupで実行
+	g.Go(func() error {
 		// シグナルを受け取るまで待機
 		<-ctx.Done()
 
@@ -86,17 +86,20 @@ func realMain() error {
 
 		// サーバーをシャットダウン(新しい接続の受け付けを停止し、contextがキャンセルされたら終了する)
 		if err := srv.Shutdown(ctx); err != nil {
-			log.Fatalf("Shutdown(): %v", err)
+			return err
 		}
-		defer wg.Done()
-	}()
+		return nil
+	})
 
-	// 正常にシャットダウンした場合はhttp.ErrServerClosedが返る
+	// メインの処理としてサーバーを起動し、正常に終了しない場合はエラーを返す
 	if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-		log.Fatalf("ListenAndServe(): %v", err)
+		return err
 	}
 
-	wg.Wait()
+	// サーバーがシャットダウンされるゴルーチンが終了するまで待機
+	if err := g.Wait(); err != nil {
+		return err
+	}
 
 	return nil
 }
